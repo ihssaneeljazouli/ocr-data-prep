@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head><title>Annotation</title></head>
+<body>
+    <p>Annotateur : <strong>{{ annotator }}</strong></p>
+    <img src="{{ image_path }}" height="120"><br><br>
+    <form method="POST">
+        <input type="hidden" name="image_id" value="{{ image_id }}">
+        <label>Mot reconnu :</label>
+        <input type="text" name="text" required autofocus>
+        <button type="submit">Ajouter</button>
+    </form>
+</body>
+</html>
