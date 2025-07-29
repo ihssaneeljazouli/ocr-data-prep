@@ -21,7 +21,7 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             path TEXT UNIQUE,
             text TEXT,
-            status TEXT CHECK(status IN ('pending', 'processing')) DEFAULT 'pending',
+            status TEXT CHECK(status IN ('pending', 'processing', 'annotated')) DEFAULT 'pending',
             annotator TEXT
         )
     """)
@@ -34,14 +34,66 @@ def init_db():
     conn.commit()
     conn.close()
 
-# --- COMPTE IMAGES RESTANTES ---
-def get_remaining_count():
+# --- STATISTIQUES ---
+def get_not_annotated_count():
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
-    cur.execute("SELECT COUNT(*) FROM images WHERE status = 'pending'")
+    cur.execute("SELECT COUNT(*) FROM images WHERE status != 'annotated'")
     count = cur.fetchone()[0]
     conn.close()
     return count
+
+def get_total_annotated_count():
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("SELECT COUNT(*) FROM images WHERE status = 'annotated'")
+    count = cur.fetchone()[0]
+    conn.close()
+    return count
+
+
+def get_total_image_count():
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("SELECT COUNT(*) FROM images")
+    count = cur.fetchone()[0]
+    conn.close()
+    return count
+
+def get_user_processing_count(annotator):
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("SELECT COUNT(*) FROM images WHERE status = 'processing' AND annotator = ?", (annotator,))
+    count = cur.fetchone()[0]
+    conn.close()
+    return count
+
+def get_user_remaining_annotations(annotator):
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("SELECT COUNT(*) FROM images WHERE status = 'processing' AND annotator = ? AND text IS NULL", (annotator,))
+    count = cur.fetchone()[0]
+    conn.close()
+    return count
+
+# --- ASSIGNATION D'IMAGES À UN UTILISATEUR ---
+def assign_images_to_user(annotator_name, batch_size=50):
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("SELECT COUNT(*) FROM images WHERE status = 'processing' AND annotator = ?", (annotator_name,))
+    count = cur.fetchone()[0]
+    if count == 0:
+        cur.execute("""
+            UPDATE images
+            SET status = 'processing', annotator = ?
+            WHERE id IN (
+                SELECT id FROM images
+                WHERE status = 'pending'
+                LIMIT ?
+            )
+        """, (annotator_name, batch_size))
+    conn.commit()
+    conn.close()
 
 # --- PAGE D'ACCUEIL ---
 @app.route("/", methods=["GET", "POST"])
@@ -49,10 +101,12 @@ def home():
     if request.method == "POST":
         annotator = request.form.get("annotator", "").strip()
         session['annotator'] = annotator or "anonyme"
+        assign_images_to_user(session['annotator'])
         return redirect(url_for("annotate"))
-
-    remaining = get_remaining_count()
-    return render_template("home.html", remaining=remaining)
+    
+    total = get_total_image_count()
+    remaining = get_not_annotated_count()
+    return render_template("home.html", remaining=remaining, total=total)
 
 # --- PAGE D'ANNOTATION ---
 @app.route("/annotate", methods=["GET", "POST"])
@@ -61,29 +115,46 @@ def annotate():
 
     if request.method == "POST":
         image_id = int(request.form["image_id"])
-        word_text = request.form["text"]
+        action = request.form["action"]  # 'add' ou 'skip'
 
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
-        cur.execute("""
-            UPDATE images
-            SET text = ?, status = 'processing', annotator = ?
-            WHERE id = ?
-        """, (word_text, annotator, image_id))
+
+        if action == "add":
+            word_text = request.form["text"]
+            cur.execute("""
+                UPDATE images
+                SET text = ?, status = 'annotated'
+                WHERE id = ? AND annotator = ?
+            """, (word_text, image_id, annotator))
+
+        elif action == "skip":
+            cur.execute("""
+                UPDATE images
+                SET status = 'pending', annotator = NULL
+                WHERE id = ? AND annotator = ?
+            """, (image_id, annotator))
+
         conn.commit()
         conn.close()
-
         return redirect(url_for("annotate"))
 
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
-    cur.execute("SELECT id, path FROM images WHERE status = 'pending' LIMIT 1")
+    cur.execute("SELECT id, path FROM images WHERE status = 'processing' AND annotator = ? LIMIT 1", (annotator,))
     row = cur.fetchone()
     conn.close()
 
+    total = get_total_image_count()
+    assigned = get_user_processing_count(annotator)
+    remaining = get_user_remaining_annotations(annotator)
+
     if row:
         image_id, image_path = row
-        return render_template("annotate.html", image_id=image_id, image_path=image_path, annotator=annotator)
+        total_annotated = get_total_annotated_count()
+        return render_template("annotate.html", image_id=image_id, image_path=image_path,
+                       annotator=annotator, total=total, assigned=assigned,
+                       remaining=remaining, total_annotated=total_annotated)
     else:
         return "<h2>🎉 Toutes les images ont été annotées !</h2>"
 

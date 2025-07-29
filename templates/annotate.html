@@ -1,14 +1,32 @@
 <!DOCTYPE html>
-<html>
-<head><title>Annotation</title></head>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Annotation</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; text-align: center; }
+        img { max-width: 400px; max-height: 120px; display: block; margin: 20px auto; border: 1px solid #ccc; }
+        input[type=text] { width: 300px; padding: 8px; }
+        .stats { margin-bottom: 20px; font-size: 18px; }
+        .btn { padding: 10px 20px; margin: 10px; font-size: 16px; }
+    </style>
+</head>
 <body>
-    <p>Annotateur : <strong>{{ annotator }}</strong></p>
-    <img src="{{ image_path }}" height="120"><br><br>
+    <h1>📝 Annotation</h1>
+    <div class="stats">
+        <p><strong>Images annotées dans la base :</strong> {{ total_annotated }} / {{ total }}</p>
+        <p><strong>Images assignées à {{ annotator }} à annoter :</strong> {{ remaining }}</p>
+    </div>
     <form method="POST">
         <input type="hidden" name="image_id" value="{{ image_id }}">
-        <label>Mot reconnu :</label>
-        <input type="text" name="text" required autofocus>
-        <button type="submit">Ajouter</button>
+        <img src="/{{ image_path }}" alt="mot à annoter">
+        <div>
+            <input type="text" name="text" placeholder="Écrivez le mot...">
+        </div>
+        <div>
+            <button class="btn" type="submit" name="action" value="add">✅ Ajouter</button>
+            <button class="btn" type="submit" name="action" value="skip">⏭️ Passer</button>
+        </div>
     </form>
 </body>
 </html>

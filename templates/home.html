@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html>
-<head><title>Accueil</title></head>
+<head>
+    <meta charset="UTF-8">
+    <title>Accueil - Annotation OCR</title>
+</head>
 <body>
-    <h2>Bienvenue 👋</h2>
-    <p>Il reste <strong>{{ remaining }}</strong> images à annoter.</p>
+    <h1>Bienvenue 👋</h1>
+    <p>Images à annoter : <strong>{{ remaining }} / {{ total }}</strong></p>
     <form method="POST">
-        <label>Votre nom (facultatif):</label>
-        <input type="text" name="annotator" placeholder="ex: ihssane">
+        <label>Votre nom (facultatif) :</label>
+        <input type="text" name="annotator">
         <button type="submit">Commencer la saisie</button>
     </form>
 </body>
