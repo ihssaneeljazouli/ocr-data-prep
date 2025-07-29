@@ -1,6 +1,7 @@
 import os
 import shutil
 import sqlite3
+import datetime
 from flask import Flask, render_template, request, redirect, url_for, session
 
 # --- CONFIGURATION ---
@@ -9,11 +10,14 @@ IMG_FOLDER = 'static/words/words_output'
 
 # --- INITIALISATION FLASK ---
 app = Flask(__name__)
-app.secret_key = 'supersecret'  # nécessaire pour la session
+app.secret_key = 'supersecret'
 
-# --- CRÉATION BASE SI ELLE N'EXISTE PAS ---
+# --- CRÉATION BASE DE DONNÉES ---
 def init_db():
     os.makedirs(IMG_FOLDER, exist_ok=True)
+    if os.path.exists(DB_PATH):
+        os.remove(DB_PATH)  # Supprime l'ancienne DB si tu veux repartir de zéro
+
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     cur.execute("""
@@ -22,7 +26,8 @@ def init_db():
             path TEXT UNIQUE,
             text TEXT,
             status TEXT CHECK(status IN ('pending', 'processing', 'annotated')) DEFAULT 'pending',
-            annotator TEXT
+            annotator TEXT,
+            assigned_at TIMESTAMP
         )
     """)
 
@@ -51,7 +56,6 @@ def get_total_annotated_count():
     conn.close()
     return count
 
-
 def get_total_image_count():
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
@@ -76,6 +80,20 @@ def get_user_remaining_annotations(annotator):
     conn.close()
     return count
 
+# --- REMETTRE EN PENDING APRÈS 3H ---
+def reset_expired_assignments():
+    now = datetime.datetime.now()
+    expired_time = now - datetime.timedelta(hours=3)
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("""
+        UPDATE images
+        SET status = 'pending', annotator = NULL, assigned_at = NULL
+        WHERE status = 'processing' AND assigned_at IS NOT NULL AND assigned_at < ?
+    """, (expired_time,))
+    conn.commit()
+    conn.close()
+
 # --- ASSIGNATION D'IMAGES À UN UTILISATEUR ---
 def assign_images_to_user(annotator_name, batch_size=50):
     conn = sqlite3.connect(DB_PATH)
@@ -83,27 +101,29 @@ def assign_images_to_user(annotator_name, batch_size=50):
     cur.execute("SELECT COUNT(*) FROM images WHERE status = 'processing' AND annotator = ?", (annotator_name,))
     count = cur.fetchone()[0]
     if count == 0:
+        now = datetime.datetime.now()
         cur.execute("""
             UPDATE images
-            SET status = 'processing', annotator = ?
+            SET status = 'processing', annotator = ?, assigned_at = ?
             WHERE id IN (
                 SELECT id FROM images
                 WHERE status = 'pending'
                 LIMIT ?
             )
-        """, (annotator_name, batch_size))
+        """, (annotator_name, now, batch_size))
     conn.commit()
     conn.close()
 
 # --- PAGE D'ACCUEIL ---
 @app.route("/", methods=["GET", "POST"])
 def home():
+    reset_expired_assignments()
     if request.method == "POST":
         annotator = request.form.get("annotator", "").strip()
         session['annotator'] = annotator or "anonyme"
         assign_images_to_user(session['annotator'])
         return redirect(url_for("annotate"))
-    
+
     total = get_total_image_count()
     remaining = get_not_annotated_count()
     return render_template("home.html", remaining=remaining, total=total)
@@ -111,11 +131,12 @@ def home():
 # --- PAGE D'ANNOTATION ---
 @app.route("/annotate", methods=["GET", "POST"])
 def annotate():
+    reset_expired_assignments()
     annotator = session.get("annotator", "anonyme")
 
     if request.method == "POST":
         image_id = int(request.form["image_id"])
-        action = request.form["action"]  # 'add' ou 'skip'
+        action = request.form["action"]
 
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
@@ -131,7 +152,7 @@ def annotate():
         elif action == "skip":
             cur.execute("""
                 UPDATE images
-                SET status = 'pending', annotator = NULL
+                SET status = 'pending', annotator = NULL, assigned_at = NULL
                 WHERE id = ? AND annotator = ?
             """, (image_id, annotator))
 
@@ -148,13 +169,13 @@ def annotate():
     total = get_total_image_count()
     assigned = get_user_processing_count(annotator)
     remaining = get_user_remaining_annotations(annotator)
+    total_annotated = get_total_annotated_count()
 
     if row:
         image_id, image_path = row
-        total_annotated = get_total_annotated_count()
         return render_template("annotate.html", image_id=image_id, image_path=image_path,
-                       annotator=annotator, total=total, assigned=assigned,
-                       remaining=remaining, total_annotated=total_annotated)
+                               annotator=annotator, total=total, assigned=assigned,
+                               remaining=remaining, total_annotated=total_annotated)
     else:
         return "<h2>🎉 Toutes les images ont été annotées !</h2>"
 
@@ -183,7 +204,7 @@ def export():
 
     return f"Export de {len(rows)} mots effectué avec succès."
 
-# --- POINT D'ENTRÉE ---
+# --- LANCEMENT ---
 if __name__ == '__main__':
     init_db()
     app.run(debug=True)
