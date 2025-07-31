@@ -15,28 +15,33 @@ app.secret_key = 'supersecret'
 # --- CRÉATION BASE DE DONNÉES ---
 def init_db():
     os.makedirs(IMG_FOLDER, exist_ok=True)
-    if os.path.exists(DB_PATH):
-        os.remove(DB_PATH)  # Supprime l'ancienne DB si tu veux repartir de zéro
+
+    # Vérifie si la base de données existe déjà
+    first_time = not os.path.exists(DB_PATH)
 
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS images (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            path TEXT UNIQUE,
-            text TEXT,
-            status TEXT CHECK(status IN ('pending', 'processing', 'annotated')) DEFAULT 'pending',
-            annotator TEXT,
-            assigned_at TIMESTAMP
-        )
-    """)
 
-    for filename in sorted(os.listdir(IMG_FOLDER)):
-        if filename.endswith('.png') or filename.endswith('.jpg'):
-            full_path = os.path.join(IMG_FOLDER, filename)
-            cur.execute("INSERT OR IGNORE INTO images (path, status) VALUES (?, 'pending')", (full_path,))
+    if first_time:
+        # Crée la table si elle n’existe pas déjà
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS images (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                path TEXT UNIQUE,
+                text TEXT,
+                status TEXT CHECK(status IN ('pending', 'processing', 'annotated')) DEFAULT 'pending',
+                annotator TEXT,
+                assigned_at TIMESTAMP
+            )
+        """)
 
-    conn.commit()
+        for filename in sorted(os.listdir(IMG_FOLDER)):
+            if filename.endswith('.png') or filename.endswith('.jpg'):
+                full_path = os.path.join(IMG_FOLDER, filename)
+                cur.execute("INSERT OR IGNORE INTO images (path, status) VALUES (?, 'pending')", (full_path,))
+
+        conn.commit()
+
     conn.close()
 
 # --- STATISTIQUES ---
