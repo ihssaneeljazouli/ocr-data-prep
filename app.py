@@ -119,6 +119,31 @@ def assign_images_to_user(annotator_name, batch_size=50):
     conn.commit()
     conn.close()
 
+# --- EXPORTER LE DATASET ---
+def export_dataset():
+    EXPORT_IMG_DIR = 'dataset/images'
+    EXPORT_LABEL_DIR = 'dataset/labels'
+    os.makedirs(EXPORT_IMG_DIR, exist_ok=True)
+    os.makedirs(EXPORT_LABEL_DIR, exist_ok=True)
+
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("SELECT path, text FROM images WHERE text IS NOT NULL")
+    rows = cur.fetchall()
+    conn.close()
+
+    for path, label in rows:
+        filename = os.path.basename(path)
+        new_img_path = os.path.join(EXPORT_IMG_DIR, filename)
+        new_txt_path = os.path.join(EXPORT_LABEL_DIR, filename.rsplit('.', 1)[0] + '.txt')
+
+        shutil.copy(path, new_img_path)
+        with open(new_txt_path, 'w', encoding='utf-8') as f:
+            f.write(label.strip())
+
+    return len(rows)
+
+
 # --- PAGE D'ACCUEIL ---
 @app.route("/", methods=["GET", "POST"])
 def home():
@@ -154,6 +179,13 @@ def annotate():
                 WHERE id = ? AND annotator = ?
             """, (word_text, image_id, annotator))
 
+            conn.commit()
+            conn.close()
+
+            export_dataset()  
+            return redirect(url_for("annotate"))
+
+
         elif action == "skip":
             cur.execute("""
                 UPDATE images
@@ -182,34 +214,10 @@ def annotate():
                                annotator=annotator, total=total, assigned=assigned,
                                remaining=remaining, total_annotated=total_annotated)
     else:
-        return "<h2>🎉 Toutes les images ont été annotées !</h2>"
+        return "<h2>Toutes les images ont été annotées ou assignées!</h2>"
 
-# --- EXPORT FINAL ---
-@app.route("/export")
-def export():
-    EXPORT_IMG_DIR = 'dataset/images'
-    EXPORT_LABEL_DIR = 'dataset/labels'
-    os.makedirs(EXPORT_IMG_DIR, exist_ok=True)
-    os.makedirs(EXPORT_LABEL_DIR, exist_ok=True)
 
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-    cur.execute("SELECT path, text FROM images WHERE text IS NOT NULL")
-    rows = cur.fetchall()
-    conn.close()
-
-    for path, label in rows:
-        filename = os.path.basename(path)
-        new_img_path = os.path.join(EXPORT_IMG_DIR, filename)
-        new_txt_path = os.path.join(EXPORT_LABEL_DIR, filename.rsplit('.', 1)[0] + '.txt')
-
-        shutil.copy(path, new_img_path)
-        with open(new_txt_path, 'w', encoding='utf-8') as f:
-            f.write(label.strip())
-
-    return f"Export de {len(rows)} mots effectué avec succès."
-
-# --- LANCEMENT ---
+# --- LANCEMENT --- 
 if __name__ == '__main__':
     init_db()
     app.run(debug=True)
