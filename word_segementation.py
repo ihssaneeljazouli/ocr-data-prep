@@ -28,7 +28,10 @@ def segment_arabic_words(image_path, output_dir):
     # Sort from right to left (since Arabic is RTL)
     contours = sorted(contours, key=lambda c: cv2.boundingRect(c)[0], reverse=True)
 
-    count = 0
+    existing_files = [f for f in os.listdir(output_dir) if f.endswith(('.png', '.jpg'))]
+    existing_indices = [int(f.split('_')[1].split('.')[0]) for f in existing_files if f.startswith('word_')]
+    count = max(existing_indices, default=-1) + 1
+
     for cnt in contours:
         x, y, w, h = cv2.boundingRect(cnt)
         # Filter small noise
