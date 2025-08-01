@@ -1,13 +1,20 @@
 import os
 import cv2
+import numpy as np
+from preprocessor import preprocess 
 
-# === INPUT PATHS ===
+# === PARAMÈTRES ===
+IMAGE_WIDTH = 128
+IMAGE_HEIGHT = 32
+MAX_TEXT_LENGTH = 32
+
+# === CHEMINS ===
 images_dir = "dataset/images"
 labels_dir = "dataset/labels"
 output_bin_path = "binary_dataset/my_dataset.bin"
 output_txt_path = "binary_dataset/my_dataset.txt"
 
-# === OUTPUT FILES ===
+# === TRAITEMENT ===
 with open(output_bin_path, "wb") as bin_f, open(output_txt_path, "w", encoding="utf-8") as txt_f:
     index = 0
     byte_offset = 0
@@ -24,23 +31,35 @@ with open(output_bin_path, "wb") as bin_f, open(output_txt_path, "w", encoding="
             print(f"⚠️ No label for {image_filename}, skipping.")
             continue
 
-        # Load image
+        # Lire image
         img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
         if img is None:
             print(f"⚠️ Could not read {image_path}")
             continue
 
+        # Prétraitement
+        img = preprocess(img, image_width=IMAGE_WIDTH, image_height=IMAGE_HEIGHT)
+        img = cv2.transpose(img)
+        img = ((img - img.min()) * (255.0 / (img.max() - img.min()))).astype('uint8')
+
+        if img.shape != (IMAGE_HEIGHT, IMAGE_WIDTH):
+            print(f"⚠️ Unexpected image size after preprocess: {image_filename} got {img.shape}")
+            continue
+
         h, w = img.shape
         img_bytes = img.tobytes()
 
-        # Read label
+        # Lire le label
         with open(label_path, 'r', encoding='utf-8') as f:
             word = f.read().strip()
+        if not word or len(word) > MAX_TEXT_LENGTH:
+            print(f"⚠️ Invalid or too long label for {image_filename}: '{word}'")
+            continue
 
-        # Write raw image bytes to binary file
+        # Écriture dans le .bin
         bin_f.write(img_bytes)
 
-        # Write metadata line to txt file
+        # Écriture dans le .txt
         txt_f.write(
             f"image idx:{index};start position:{byte_offset};"
             f"image height:{h};image width:{w};"
@@ -48,7 +67,6 @@ with open(output_bin_path, "wb") as bin_f, open(output_txt_path, "w", encoding="
             f"bold:false;italic:false;word:{word}\n"
         )
 
-        # Update index and byte offset
         index += 1
         byte_offset += len(img_bytes)
 
