@@ -48,8 +48,10 @@ python word_segmentation.py
 ```bash
 python app.py
 ```
-Open the browser;
-Annotate the words shown in the interface;
+Open the browser
+
+Annotate the words shown in the interface
+
 The application creates a dataset/ folder with:
   -images/ (word images)
   -labels/ (corresponding .txt annotations)
