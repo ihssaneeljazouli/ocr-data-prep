@@ -231,3 +231,37 @@ if __name__ == "__main__":
     test_img = generator.generate_word_image(test_word)
     test_img.save("test_arabic_word.png")
     print(f"Test word generated: {test_word}")
+
+"""The script has been updated for Arabic OCR data generation! Here are the key features:
+Arabic-specific capabilities:
+
+Generates synthetic Arabic words using real Arabic letters (ا، ب، ت، etc.)
+Uses common Arabic prefixes (ال، و، ف) and suffixes (ها، ان، ين)
+Incorporates Arabic numbers (٠١٢٣٤٥٦٧٨٩)
+Handles Arabic text direction and shaping
+
+Handwritten effects:
+
+Adds character-level variations (rotation, position shifts)
+Simulates ink color variations
+Creates paper texture with noise
+Adds occasional ink blots and smudges
+Applies slight blur for realistic handwriting appearance
+
+Required dependencies:pip install Pillow numpy arabic-reshaper python-bidi
+
+Font recommendations:
+The script tries to find Arabic fonts automatically, but for best results, download and install:
+
+Noto Sans Arabic (free, excellent coverage)
+Amiri (traditional Arabic calligraphy style)
+Cairo (modern Arabic font)
+
+Usage:
+
+Run the script to generate 500 samples (adjustable)
+Images saved as PNG files in images/ folder
+Corresponding Arabic text saved as UTF-8 encoded .txt files in labels/ folder
+
+The generated words will look like authentic Arabic handwriting with natural variations, perfect for training OCR models on Arabic text!
+"""
