@@ -1,6 +1,6 @@
 import cv2
 import os
-import numpy as np
+
 
 def segment_arabic_words(image_path, output_dir):
     os.makedirs(output_dir, exist_ok=True)
