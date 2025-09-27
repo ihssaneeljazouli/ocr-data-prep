@@ -43,7 +43,7 @@ def segment_arabic_words(image_path, output_dir):
 
     print(f"✅ Done! {count} word images saved in '{output_dir}'.")
 
-# Example usage
+#segmentation of an image
 if __name__ == "__main__":
     image_path = "test.jpg"  # Replace with your image
     output_dir = "words_output"
