@@ -38,13 +38,16 @@ It includes scripts for **word segmentation**, **annotation via a web app**, **i
 
 ---
 
-## 🚀 Example of usage
-
-### 1. Word Segmentation
+## 🚀 Usage example
+### 1.Install the dependecies
+```bash
+pip install -r requirements.txt
+```
+### 2. Word Segmentation
 ```bash
 python word_segmentation.py
 ```
-### 2. Annotate segmented words
+### 3. Annotate segmented words
 ```bash
 python app.py
 ```
@@ -53,10 +56,12 @@ Open the browser
 Annotate the words shown in the interface
 
 The application creates a dataset/ folder with:
+
   -images/ (word images)
+
   -labels/ (corresponding .txt annotations)
 
-### 3. Convert dataset to binary format for OCR
+### 4. Convert dataset to binary format for OCR
 ```bash
 python images_to_binary.py
 ```

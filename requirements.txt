@@ -1,6 +1,11 @@
 opencv-python
 numpy
 flask
+Pillow
+arabic-reshaper
+python-bidi
+fonttools
+scipy
 sqlite3 
 shutil
 datetime 
