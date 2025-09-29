@@ -1,4 +1,6 @@
+import os
 import random
+import string
 from PIL import Image, ImageDraw, ImageFont
 import numpy as np
 from pathlib import Path
@@ -6,7 +8,7 @@ import arabic_reshaper
 from bidi.algorithm import get_display
 
 class ArabicOCRWordGenerator:
-    def __init__(self, output_dir="arabic_data_generator"):
+    def __init__(self, output_dir="arabic_ocr_data"):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
         
@@ -190,8 +192,14 @@ class ArabicOCRWordGenerator:
         
         return img
     
-    def generate_dataset(self, num_samples=1000):
-        """Generate a complete dataset of Arabic word images and labels"""
+    def generate_dataset(self, num_samples=1000, save_visual_order=True):
+        """Generate a complete dataset of Arabic word images and labels
+        
+        Args:
+            num_samples: Number of samples to generate
+            save_visual_order: If True, save text as it appears visually (RTL).
+                             If False, save in logical order (for some OCR models)
+        """
         print(f"Generating {num_samples} Arabic word samples...")
         
         for i in range(num_samples):
@@ -210,7 +218,18 @@ class ArabicOCRWordGenerator:
             txt_filename = f"word_{i:06d}.txt"
             txt_path = self.labels_dir / txt_filename
             with open(txt_path, 'w', encoding='utf-8') as f:
-                f.write(word)
+                if save_visual_order:
+                    # Save text as it appears visually in the image (after reshaping)
+                    try:
+                        reshaped_text = arabic_reshaper.reshape(word)
+                        display_text = get_display(reshaped_text)
+                        f.write(display_text)
+                    except:
+                        # Fallback to original if reshaping fails
+                        f.write(word)
+                else:
+                    # Save in logical order (original)
+                    f.write(word)
             
             if (i + 1) % 100 == 0:
                 print(f"Generated {i + 1} samples...")
@@ -224,39 +243,5 @@ if __name__ == "__main__":
     generator = ArabicOCRWordGenerator()
     
     # Generate 500 samples (adjust as needed)
-    generator.generate_dataset(10)
+    generator.generate_dataset(500)
     print(f"Data generated")
-
-"""The script has been updated for Arabic OCR data generation! Here are the key features:
-Arabic-specific capabilities:
-
-Generates synthetic Arabic words using real Arabic letters (ا، ب، ت، etc.)
-Uses common Arabic prefixes (ال، و، ف) and suffixes (ها، ان، ين)
-Incorporates Arabic numbers (٠١٢٣٤٥٦٧٨٩)
-Handles Arabic text direction and shaping
-
-Handwritten effects:
-
-Adds character-level variations (rotation, position shifts)
-Simulates ink color variations
-Creates paper texture with noise
-Adds occasional ink blots and smudges
-Applies slight blur for realistic handwriting appearance
-
-Required dependencies:pip install Pillow numpy arabic-reshaper python-bidi
-
-Font recommendations:
-The script tries to find Arabic fonts automatically, but for best results, download and install:
-
-Noto Sans Arabic (free, excellent coverage)
-Amiri (traditional Arabic calligraphy style)
-Cairo (modern Arabic font)
-
-Usage:
-
-Run the script to generate 500 samples (adjustable)
-Images saved as PNG files in images/ folder
-Corresponding Arabic text saved as UTF-8 encoded .txt files in labels/ folder
-
-The generated words will look like authentic Arabic handwriting with natural variations, perfect for training OCR models on Arabic text!
-"""
