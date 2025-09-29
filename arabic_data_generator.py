@@ -225,11 +225,6 @@ if __name__ == "__main__":
     
     # Generate 500 samples (adjust as needed)
     generator.generate_dataset(10)
-    
-    # Optional: Generate a single sample for testing
-    test_word = generator.generate_synthetic_arabic_word()
-    test_img = generator.generate_word_image(test_word)
-    test_img.save("test_arabic_word.png")
     print(f"Data generated")
 
 """The script has been updated for Arabic OCR data generation! Here are the key features:

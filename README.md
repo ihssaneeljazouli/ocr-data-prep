@@ -1,7 +1,7 @@
 # OCR Data Preparation (Arabic Words)
 
 This repository provides a complete pipeline to **prepare data for an OCR system**, specifically designed for **Arabic word recognition**.  
-It includes scripts for **word segmentation**, **annotation via a web app**, **image preprocessing**, and **binary dataset generation**.
+It includes scripts for **arabic data generation**, **word segmentation**, **annotation via a web app**, **image preprocessing**, and **binary dataset generation**.
 
 ---
 
@@ -21,7 +21,17 @@ It includes scripts for **word segmentation**, **annotation via a web app**, **i
   - Features:
     - Creates an **SQLite database** to track annotation state.  
     - Assigns word images to users for labeling.  
-    - If not annotated within **3 hours**, images return to `pending` state for others to annotate.  
+    - If not annotated within **3 hours**, images return to `pending` state for others to annotate. 
+
+- **`arabic_data_generator.py`**   
+  - Output: `arabic_data_generator/` folder with:
+    - `images/` → word images  
+    - `labels/` → `.txt` files with annotations  
+  - Features:
+    - Generates synthetic Arabic words using Arabic letters and numbers.  
+    - Handles Arabic text direction and shaping.
+    - Adds handwritten effects.
+   
 
 - **`preprocessor.py`**  
   - Provides preprocessing utilities using **NumPy** and **OpenCV**:
