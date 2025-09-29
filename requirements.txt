@@ -5,7 +5,4 @@ Pillow
 arabic-reshaper
 python-bidi
 fonttools
-scipy
-sqlite3 
-shutil
-datetime 
+scipy 

@@ -6,7 +6,7 @@ import arabic_reshaper
 from bidi.algorithm import get_display
 
 class ArabicOCRWordGenerator:
-    def __init__(self, output_dir="arabic_generator_data"):
+    def __init__(self, output_dir="arabic_data_generator"):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
         
@@ -30,7 +30,7 @@ class ArabicOCRWordGenerator:
         self.common_roots = ['كتب', 'درس', 'عمل', 'قرأ', 'سمع', 'شرب', 'أكل', 'نوم', 'جلس', 'قام', 'ذهب', 'جاء']
         
         # Numbers in Arabic
-        self.arabic_numbers = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩']
+        self.arabic_numbers = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩','0','1','2','3','4','5','6','7','8','9']
         
         # Try to load an Arabic font (you might need to adjust the path)
         self.arabic_fonts = [
@@ -224,13 +224,13 @@ if __name__ == "__main__":
     generator = ArabicOCRWordGenerator()
     
     # Generate 500 samples (adjust as needed)
-    generator.generate_dataset(500)
+    generator.generate_dataset(10)
     
     # Optional: Generate a single sample for testing
     test_word = generator.generate_synthetic_arabic_word()
     test_img = generator.generate_word_image(test_word)
     test_img.save("test_arabic_word.png")
-    print(f"Test word generated: {test_word}")
+    print(f"Data generated")
 
 """The script has been updated for Arabic OCR data generation! Here are the key features:
 Arabic-specific capabilities:
